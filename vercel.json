@@ -2,12 +2,8 @@
     "version": 2,
     "builds": [
         {
-          "src": "index.js",
+          "src": "package.json",
           "use": "@vercel/node",
-          "install": {
-            "include": ["package.json"],
-            "additionalSteps": ["npm i --legacy-peer-deps"]
-          }
         }
       ],
       
@@ -18,7 +14,6 @@
       }
     
     ]
-    
   
   }
   
