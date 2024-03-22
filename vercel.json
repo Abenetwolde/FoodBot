@@ -3,8 +3,7 @@
     "builds": [
         {
           "src": "package.json",
-          "use": "@vercel/node",
-          "buildCommand": "npm i --legacy-peer-deps"
+          "use": "@vercel/node"
         }
       ],
       
@@ -14,7 +13,11 @@
         "dest": "/" 
       }
     
-    ]
+    ],
+    "install": {
+        "include": ["package.json"],
+        "additionalSteps": ["npm i --legacy-peer-deps"]
+      }
   
   }
   
