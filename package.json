@@ -41,7 +41,7 @@
     "telegraf-session-local": "^2.1.1",
     "telegraf-session-mongodb": "^2.0.2"
   },
-  "engines": { "node": "20.x" },
+  "engines": { "node": "18.x" },
   "devDependencies": {
     "@telegraf/types": "^6.9.1",
     "@types/node": "^20.10.3",
