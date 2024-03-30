@@ -2,23 +2,16 @@ const { Scenes, Markup } = require("telegraf")
 const numeral = require("numeral")
 const moment = require("moment")
 const axios = require('axios');
-// const { checkUserToken } = require('./Pagination/Utils/checkUserToken');
 const apiUrl = 'http://localhost:5000';
 const _ = require("lodash");
-const { checkUserToken } = require("../Utils/checkUserToken");
+
 const { createPayment } = require("../Database/payment");
 const { updateOrder, updateOrderStatus } = require("../Database/orderController");
 const product = require("../Model/product");
 let priceLabels = []
 const paymentScene = new Scenes.BaseScene("paymentScene")
 const UserKPI=require("../Model/KpiUser");
-/**
- * Upon entering, scene contains:
- * 1. Voucher applied (i.e. ctx.scene.state.voucher)
- * 2. Delivery date, if any (i.e. ctx.scene.state.deliveryDate)
- * 3. Note, if any (i.e. ctx.scene.state.note)
- */
-let paymentResponse = null
+
 paymentScene.enter(async (ctx) => {
     const enterTime = new Date();
     ctx.scene.state.enterTime = enterTime;
@@ -27,7 +20,7 @@ paymentScene.enter(async (ctx) => {
     ctx.session.isWaiting = {
         status: false
     }
-    console.log("orderid from payment", ctx.scene.state.orderId)
+
     await ctx.reply("Welcome to the payment page, you're able to make payment for your order now.",    Markup.keyboard([
         ["🏠 Back to Home"]
     ]).resize())
@@ -85,9 +78,9 @@ async function initiatePayment(ctx, gateway) {
         })
 
     }
-    console.log("Getway.......",gateway)
+
 const totalCost =  ctx.scene.state.totalPrice
-    // Based on the gateway choice, configure payment parameters accordingly
+
     let providerToken, payload;
     if (gateway === "chapa") {
         console.log("Getway",gateway)
@@ -127,7 +120,7 @@ const totalCost =  ctx.scene.state.totalPrice
 //   });
   //some  change
 paymentScene.on("successful_payment", async (ctx) => {
-    console.log("Success payment", ctx.message.successful_payment)
+
     ctx.session.cleanUpState = _.map(ctx.session.cleanUpState, function (message) {         // Convert old cart message ID into text to prune
         if (message.type === "invoice") {
             message.type = "receipt"
@@ -159,39 +152,43 @@ paymentScene.on("successful_payment", async (ctx) => {
         }
 const updatedOrder=await updateOrder(orderupdate)
 // console.log("orderupdate",orderinfo)
-let summary = '';
-let totalPrice = 0;
-summary += `Order Details:`
-// const updatedOrder = await updateOrderStatus(ctx.scene.state.orderId, 'completed');
-// console.log('Order status updated successfully:', updatedOrder.orderItems);
-for (const orderItem of updatedOrder.orderItems) {
+// let summary = '';
+// let totalPrice = 0;
+// summary += `Order Details:`
+// // const updatedOrder = await updateOrderStatus(ctx.scene.state.orderId, 'completed');
+// // console.log('Order status updated successfully:', updatedOrder.orderItems);
+// for (const orderItem of updatedOrder.orderItems) {
 
-    summary += `🛒 ${orderItem.product.name}: ${orderItem.quantity} x ${orderItem.product.price} = ${orderItem.quantity * orderItem.product.price} ETB\n`;
-    totalPrice += orderItem.quantity * orderItem.product.price ;
-    // await ctx.reply(
-    //     `Order Details:
-    //                Product: ${orderItem.product.name}
-    //                Quantity: ${orderItem.quantity}
-    //                Total Price: ${orderItem.quantity * orderItem.product.price} ETB
-    //                Order ID: ${updatedOrder._id}`,
-    // );
+//     summary += `🛒 ${orderItem.product.name}: ${orderItem.quantity} x ${orderItem.product.price} = ${orderItem.quantity * orderItem.product.price} ETB\n`;
+//     totalPrice += orderItem.quantity * orderItem.product.price ;
+//     // await ctx.reply(
+//     //     `Order Details:
+//     //                Product: ${orderItem.product.name}
+//     //                Quantity: ${orderItem.quantity}
+//     //                Total Price: ${orderItem.quantity * orderItem.product.price} ETB
+//     //                Order ID: ${updatedOrder._id}`,
+//     // );
     
-    await product.findByIdAndUpdate(orderItem.product._id, {
-        $inc: {   orderQuantity: +orderItem.quantity }
-    });
-  }
-  summary += `\nTotal Price: <u>${totalPrice} ETB</u>`;
-
+//     await product.findByIdAndUpdate(orderItem.product._id, {
+//         $inc: {   orderQuantity: +orderItem.quantity }
+//     });
+//   }
+//   summary += `\nTotal Price: <u>${totalPrice} ETB</u>`;
+  const message=  await ctx.reply(`Payment received for Order ID: ${updatedOrder.orderNumber}. Total Amount: ${updatedOrder.totalPrice}`);
   // Send a separate message about the product
-  await ctx.reply(`Thank you for your order! The product will be delivered to you soon.`);
-  await ctx.replyWithHTML(summary),
+  await ctx.telegram.pinChatMessage(ctx.chat.id, message.message_id);
+  await ctx.reply(`Thank you for your order! The product will be delivered to you soon.`,Markup.inlineKeyboard([
+    Markup.button.callback(
+      `View Your Order`,"showOrder")
+  ]));
+//   await ctx.replyWithHTML(summary),
   ctx.session.orderInformation={}   
     } catch (error) {
         console.error('Error creating payment:', error);
         // Handle error
     }
 
-await ctx.scene.enter("homeScene")
+// await ctx.scene.enter("homeScene")
 })
 
 paymentScene.on("message", async (ctx) => {
@@ -199,7 +196,9 @@ paymentScene.on("message", async (ctx) => {
         ctx.scene.enter("homeScene")
     }
 })
-
+paymentScene.action("showOrder",async(ctx)=>{
+    await ctx.scene.enter("myOrderScene")
+})
 paymentScene.leave(async (ctx) => {
     console.log("Cleaning payment scene")
     ctx.session.orderInformation={}

@@ -1,66 +1,39 @@
 const { Scenes, Markup } = require("telegraf")
-const { sendProdcutSummary } = require("../Templeat/summary")
-const axios = require('axios');
-const { createOrder, getOrderById } = require("../Database/orderController");
-const { getCart } = require("../Database/cartController");
-const apiUrl = 'http://localhost:5000';
+
 const UserKPI=require("../Model/KpiUser");
-const addressOnline = new Scenes.BaseScene("addressOnline")
-addressOnline.enter(async (ctx) => {
+const aboutUs = new Scenes.BaseScene("aboutus")
+aboutUs.enter(async (ctx) => {
     const enterTime = new Date();
     ctx.scene.state.enterTime = enterTime;
-    ctx.session.cleanUpState = []
-    ctx.session.timeout = []
-    ctx.session.isWaiting = {
-        status: false
-    }
-    const note1message = await ctx.reply("Last step before we're able to generate your invoice! 🙂", Markup.keyboard([
-        ["❌ Cancel"]
+
+    const aboutme = await ctx.reply('contact me @abman', Markup.inlineKeyboard([
+       Markup.button.callback("❌ Back","Back")
     ]).resize())
 
+   
 
-    const note1message2 = await ctx.reply(
-        "Great! Now, please provide your location or send a Google Maps link?",
-        {
-          reply_markup: {
-            resize_keyboard: true, 
-            force_reply: true,
-          },
-        }
-      );
-    ctx.session.cleanUpState.push({ id: note1message.message_id, type: 'addressOnline' });
-    ctx.session.cleanUpState.push({ id: note1message2.message_id, type: 'addressOnline' });
+     ctx.session.cleanUpState.push({ id: aboutme.message_id, type: 'aboutme' });
+    // ctx.session.cleanUpState.push({ id: note1message2.message_id, type: 'addressOnline' });
     // ctx.session.cleanUpState.push(summaymessage);
 
 })
 
-addressOnline.on("message", async (ctx) => {
-    const text = ctx.message.text;
+aboutUs.action("Back", async (ctx) => {
+await ctx.scene.enter("homeScene")
+}
 
-    if (text === "❌ Cancel" || text === "/start") {
-        return ctx.scene.enter("cart")
-    } else {
-        ctx.session.orderInformation = {
-            ...ctx.session.orderInformation,
-            location: ctx.message.text,
-        };
-        await ctx.scene.enter("NOTE_SCENE");
-    }
-
-});
+)
 
 
 
 
-
-
-addressOnline.leave(async (ctx) => {
+aboutUs.leave(async (ctx) => {
     try {
         if (ctx.session.cleanUpState) {
             // Iterate over the cleanUpState array
             for (const message of ctx.session.cleanUpState) {
                 // Check if the message exists before attempting to delete it
-                if (/* message?.type === 'addressOnline' */ message?.type === 'summary') {
+                if (/* message?.type === 'addressOnline' */ message?.type === 'aboutus') {
                     await ctx.telegram.deleteMessage(ctx.chat.id, message.id);
                 }
             }
@@ -69,7 +42,7 @@ addressOnline.leave(async (ctx) => {
         console.error('Error in note leave:', error);
     } finally {
         // Always clear the cleanUpState array
-        ctx.session.cleanUpState = [];
+        // ctx.session.cleanUpState = [];
     }
     try {
         // Calculate the duration when leaving the scene
@@ -93,7 +66,7 @@ addressOnline.leave(async (ctx) => {
             if (existingUserKPI) {
                 // If the user exists, update the scene details
                 existingUserKPI.scene.push({
-                    name: 'AddressOnline',
+                    name: 'Aboutme',
                     enterTime: enterTime,
                     leaveTime: leaveTime,
                     duration: durationFormatted
@@ -104,7 +77,7 @@ addressOnline.leave(async (ctx) => {
                 const newUserKPI = new UserKPI({
                     telegramId: ctx.from.id,
                     scene: [{
-                        name: 'AddressOnline',
+                        name: 'Aboutme',
                         enterTime: enterTime,
                         leaveTime: leaveTime,
                         duration: durationFormatted
@@ -119,5 +92,5 @@ addressOnline.leave(async (ctx) => {
 })
 
 module.exports = {
-    addressOnline
+    aboutUs
 }
