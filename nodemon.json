@@ -1,5 +1,10 @@
 {
+<<<<<<< HEAD
     "watch": ["src"],
     "ext": ".ts,.js",
     "exec": "ts-node ./src/index.ts"
   }
+=======
+    "ignore": ["db1.json"]
+}
+>>>>>>> origin/main
