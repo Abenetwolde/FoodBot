@@ -8,7 +8,26 @@ import clickKpi from '../model/UserClicks';
 import { userInfo } from 'os';
 import Order from '../model/order.model';
 
-
+export const getRatingCounts = async (req: Request, res: Response) => {
+    console.log("get-users-rating'")
+    try {
+      const ratings = await User.aggregate([
+        { $match: { isUserRatedTheBot: { $ne: null } } },
+        { $group: { _id: '$isUserRatedTheBot', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]);
+  
+      const ratingCounts = ratings.reduce((acc, rating) => {
+        acc[rating._id] = rating.count;
+        return acc;
+      }, {});
+  
+      res.status(200).json(ratingCounts);
+    } catch (error) {
+      console.error('Error getting rating counts:', error);
+      res.status(500).json({ message: 'Internal server error.' });
+    }
+  };
 export const getUsersCountAndPercentageChange = async (req: Request, res: Response): Promise<void> => {
     try {
         
@@ -60,11 +79,11 @@ export const getUsersCountAndPercentageChange = async (req: Request, res: Respon
         const formattedCounts = newUserCounts.map(({ _id, newUserCounts }) => {
             const counts: any = { frombotcount: 0, fromchannelcount: 0, frominvitation: 0 };
             newUserCounts.forEach(({ from, count }: any) => {
-                if (from === 'BOT') {
+                if (from === 'Bot') {
                     counts.frombotcount += count;
-                } else if (from === 'CHANNEL') {
+                } else if (from === 'Channel') {
                     counts.fromchannelcount += count;
-                } else if (from === 'INVITATION') {
+                } else if (from === 'Refferal') {
                     counts.frominvitation += count;
                 }
             });
@@ -392,7 +411,7 @@ export const GetUSerSpentTime = async (req: Request, res: Response) => {
                 {
                     $group: {
                         _id: {
-                            date: { $dateToString: { format: "%Y-%m-%d", date: "$scene.date" } },
+                            date: { $dateToString: { format: "%m-%d", date: "$scene.date" } },
 
                         },
                         totalDuration: {
@@ -660,7 +679,7 @@ export const totalNumberofClicks = async (req: Request, res: Response) => {
 
                     {
                         $group: {
-                            _id: { $dateToString: { format: "%Y-%m-%d", date: "$clicks.date" } },
+                            _id: { $dateToString: { format: "%d", date: "$clicks.date" } },
                             totalProductClicks: { $sum: '$clicks.count' }
                         }
                     },
@@ -752,8 +771,8 @@ export const getUsersJoinedByMethodPerTimeInterval = async (req: Request, res: R
         // Initialize start and end dates based on the selected interval
         let startDate, endDate;
         switch (interval) {
-            case 'perDay':
-                const selectedDate = new Date();
+             case 'perDay':
+                 const selectedDate = new Date();
                 startDate = new Date(selectedDate);
                 startDate.setUTCHours(0, 0, 0, 0);
                 endDate = new Date(selectedDate);
@@ -828,7 +847,7 @@ console.log(formattedResult)
 export const GetTimeSpentPerScene = async (req: Request, res: Response) => {
     console.log("GetTimeSpentPerScene user kpi ");
     try {
-        const { interval = 'perMonth', search = '', page = 1, pageSize = 10 } = req.query;
+        const { interval = 'perMonth', search = '', page = 1, pageSize = 5 } = req.query;
 
         // Get the current date
         const currentDate = new Date();
@@ -1099,9 +1118,9 @@ export const getUserTotalClicksPerName = async (req: Request, res: Response) => 
 };
 
 export const getUsersPerformance = async (req: Request, res: Response) => {
-    console.log("getUsersPerformance")
+    // console.log("getUsersPerformance")
     try { 
-        console.log(req.query.page)
+        console.log(req.query)
         const { interval = 'perMonth', page = 1, limit, search = '' } = req.query;
         let usertimedata: any = []
         let userclickdata: any = []
@@ -1110,9 +1129,9 @@ export const getUsersPerformance = async (req: Request, res: Response) => {
         const currentPage = parseInt(page as string);
         const itemsPerPage = parseInt(limit as string)
         const searchQuery = (search as string).trim();
-        console.log("search log",searchQuery)
-        console.log("limit log",itemsPerPage)
-        console.log("page log",currentPage)
+        // console.log("search log",searchQuery)
+        // console.log("limit log",itemsPerPage)
+        // console.log("page log",currentPage)
         const currentDate = new Date();
         currentDate.setUTCHours(0, 0, 0, 0);
 
@@ -1354,7 +1373,7 @@ usertimedata.forEach((userTimeDataItem: any) => {
 
         let filteredUsersWithScores = usersWithScores;
      
-        if (searchQuery) {
+        if (searchQuery!=='') {
             filteredUsersWithScores = usersWithScores.filter((user: any) => 
                 (user.user.user.first_name && user.user.user.first_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (user.user.user.last_name && user.user.user.last_name.toLowerCase().includes(searchQuery.toLowerCase())) ||

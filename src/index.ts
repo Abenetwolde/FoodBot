@@ -14,9 +14,11 @@ import category from './routers/category';
 import order from './routers/order';
 import payment from './routers/payment';
 import useKpi from './routers/UserKPI';
+import feedback from './routers/feedback';
+import passport from 'passport';
 // import mongoose from 'mongoose';
 import path from 'path';
- 
+import passportConfig from './passport';
 const app = express();
 
 app.use(express.json());
@@ -31,7 +33,8 @@ app.use(compression());
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.static('uploads'));
-
+app.use(passport.initialize());
+passportConfig();
 cloudinary.config({
   cloud_name: "abmanwolde",
   api_key: "827239376525146",
@@ -43,6 +46,7 @@ app.use('/api/category', category);
 app.use('/api/order', order);
 app.use('/api/payment', payment);
 app.use('/api/kpi', useKpi);
+app.use('/api/feedback', feedback);
 connectToDatabase()
    
 app.listen(7000, () => {

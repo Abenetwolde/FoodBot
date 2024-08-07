@@ -35,18 +35,19 @@ export interface IUser extends Document {
   orders:Array<Schema.Types.ObjectId>;
   subscriptions: Array<Schema.Types.ObjectId>;
   locale: string;
+  refershingToken:String,
   language: string;
   role: {
     type: String,
-    default: 'ADMIN',
-    enum: ['ADMIN', 'SUPER ADMIN','USER'],
+    default: 'Admin',
+    enum: ['Admin', 'SuperAdmin','User','Tester'],
     required: [true, 'Role is required'],
   },
   is_bot:Boolean,
   from: {
     type: String,
-    default: 'BOT',
-    enum: ['BOT', 'CHANNEL', 'INVITATION'],
+    default: 'Bot',
+    enum: ['Bot', 'Channel','Refferal'],
     required: [true, 'status is required'],
   }, 
   lotteryNumbers: {
@@ -61,13 +62,15 @@ export interface IUser extends Document {
       // required: true,
     },
   },
+  isUserRatedTheBot: String,
+
   createdAt:Date
 }
 
 const userSchema = new Schema<IUser>({
   telegramid: {
     type: Number,
-    required:true
+    // required:true
   },
   email: {
     type: String,
@@ -90,18 +93,21 @@ const userSchema = new Schema<IUser>({
   },
   role: {
     type: String,
-    default: 'ADMIN',
-    enum: ['ADMIN', 'SUPER ADMIN','USER'],
+    default: 'Admin',
+    enum: ['Admin', 'SuperAdmin','User','Tester'],
     required: [true, 'Role is required'],
   },
 
   from: {
     type: String,
-    default: 'BOT',
-    enum: ['BOT', 'CHANNEL','INVITATION'],
-    required: [true, 'status is required'],
+    default: 'Bot',
+    enum: ['Bot', 'Channel','Refferal'],
+    // required: [true, 'status is required'],
   },
   token: {
+    type: String,
+  },
+  refershingToken: {
     type: String,
   },
   phone: String,
@@ -126,6 +132,10 @@ const userSchema = new Schema<IUser>({
       // required: true,
     },
   },
+  isUserRatedTheBot: {
+    type: String,  // This will store the rating value (1-5)
+    default: null
+},
   createdAt: { type: Date, default: Date.now },
 });
 

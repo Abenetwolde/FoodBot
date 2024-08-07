@@ -4,6 +4,70 @@ import User, { IUser } from '../model/user.model';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { Document, Types } from 'mongoose';
+
+const generateToken = (user:any) => {
+    return jwt.sign({ id: user._id, role: user.role }, 'your_jwt_secret', {
+      expiresIn: '1h', // Adjust expiration as needed
+    });
+  };
+  
+  // Refresh Token (for demonstration purposes, adjust as needed)
+  const generateRefreshToken = (user:any) => {
+    return jwt.sign({ id: user._id }, 'your_refresh_token_secret', {
+      expiresIn: '7d', // Adjust expiration as needed
+    });
+  };
+  
+  // Register a new user (only for SUPER ADMIN)
+  export const registerUser = async (req: Request, res: Response) => {
+    const { email, password, first_name, last_name, role } = req.body;
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = new User({...req.body, password:hashedPassword,});
+      const user = await newUser.save();
+      res.status(201).json(user);
+    } catch (error:any) {
+        console.log("error",error)
+      res.status(400).json({ error: error.message });
+    }
+  };
+  
+  // Login user
+  export const loginUser = async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+    try {
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(400).json({ message: 'Invalid email or password' });
+      }
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Invalid email or password' });
+      }
+      const token = generateToken(user);
+      const refreshToken = generateRefreshToken(user);
+      res.json({ token, refreshToken,user});
+    } catch (error:any) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+  
+  // Refresh token
+  export const refreshToken = (req: Request, res: Response) => {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+  
+    try {
+      const decoded = jwt.verify(token, 'your_refresh_token_secret');
+      const newToken = generateToken(decoded);
+      res.json({ token: newToken });
+    } catch (error) {
+      res.status(403).json({ message: 'Invalid token' });
+    }
+  };
+
 exports.createUser = async (req: Request, res: Response) => {
     console.log("hit the create user api")
 
@@ -61,15 +125,15 @@ exports.updateUserDetails = async (req: Request, res: Response) => {
     console.log("hit the updateUserDetails user api", req.body)
 
     try {
-        let user = await User.findOne({ telegramid: parseInt(req.params.telegramid)});
+        let user = await User.findById(req.params.telegramid);
         console.log("User.$where..........", user)
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found!' });
         }
    
-       const  muser = await User.findOneAndUpdate({ telegramid: parseInt(req.params.telegramid) },
+       const  muser = await User.findByIdAndUpdate(req.params.telegramid,
          { ...req.body} ,{ new: true });
-      console.log("msuser",muser)
+
        
         if (!muser) {
             return res.status(400).json({ success: false, message: 'User update failed!' });
@@ -88,13 +152,13 @@ exports.updateUserDetails = async (req: Request, res: Response) => {
 exports.deleteAuser = async (req: Request, res: Response) => {
     console.log("hit the delete user api")
     try {
-        let user = await User.findOne({ telegramid: req.params.telegramid });
+        let user = await User.findById(req.params.telegramid );
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found!' });
         }
 
-        user = await User.findByIdAndDelete(user._id).lean();
+        user = await User.findByIdAndDelete(req.params.telegramid).lean();
 
         if (!user) {
             return res.status(400).json({ success: false, message: 'User deletion failed!' });
@@ -127,7 +191,7 @@ export const getAllAuser = async (req: Request, res: Response) => {
 
         // Build the query object
         let query: any = {};
-        if (search) {
+        if (search!=='') {
             query.first_name = { $regex: search, $options: 'i' }; // Case-insensitive search
         }
         if (joinMethod) {
@@ -184,7 +248,7 @@ export const NewuserCustomRange = async (req: Request, res: Response): Promise<v
             {
                 $group: {
                     _id: {
-                        date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        date: { $dateToString: { format: "%d-%m", date: "$createdAt" } },
                         from: "$from"
                     },
                     count: { $sum: 1 }
@@ -210,11 +274,11 @@ export const NewuserCustomRange = async (req: Request, res: Response): Promise<v
         const formattedCounts = newUserCounts.map(({ _id, newUserCounts }) => {
             const counts: any = { frombotcount: 0, fromchannelcount: 0, frominvitation: 0 };
             newUserCounts.forEach(({ from, count }: any) => {
-                if (from === 'BOT') {
+                if (from === 'Bot') {
                     counts.frombotcount += count;
-                } else if (from === 'CHANNEL') {
+                } else if (from === 'Channel') {
                     counts.fromchannelcount += count;
-                } else if (from === 'INVITATION') {
+                } else if (from === 'Refferal') {
                     counts.frominvitation += count;
                 }
             });
@@ -291,7 +355,7 @@ if(interval==="perWeek"||interval==="perMonth"){
             {
                 $group: {
                     _id: {
-                        date: { $dateToString: { format: "%d-%m", date: "$createdAt" } },
+                        date: { $dateToString: { format: "%d", date: "$createdAt" } },
                         from: "$from"
                     },
                     count: { $sum: 1 }
@@ -389,12 +453,12 @@ if(interval==="perWeek"||interval==="perMonth"){
         const formattedCounts = newUserCounts.map(({ _id, newUserCounts }) => {
             const counts:any = { frombotcount: 0, fromchannelcount: 0 ,frominvitation:0};
             newUserCounts.forEach(({ from, count }:any) => {
-                if (from === 'BOT') {
+                if (from === 'Bot') {
                     counts.frombotcount += count;
-                } else if (from === 'CHANNEL') {
+                } else if (from === 'Channel') {
                     counts.fromchannelcount += count;
                 }
-                else if (from === 'INVITATION') {
+                else if (from === 'Refferal') {
                     counts.frominvitation += count;
                 }
             });
