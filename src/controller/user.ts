@@ -7,7 +7,7 @@ import { Document, Types } from 'mongoose';
 
 const generateToken = (user:any) => {
     return jwt.sign({ id: user._id, role: user.role }, 'your_jwt_secret', {
-      expiresIn: '1h', // Adjust expiration as needed
+      expiresIn: '999d', // Adjust expiration as needed
     });
   };
   
